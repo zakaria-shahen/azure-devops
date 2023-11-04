@@ -1,44 +1,51 @@
-provider "azurerm" {
-  version = "=2.8.0"
+terraform {
+  required_providers {
+     azurerm = {
+      version = "3.78.0"
+     }
+  }
+}
+
+provider azurerm {
   features {}
 }
 
-variable "appName" {
+variable appName {
   type = string
 }
 
-variable "azureRegion" {
+variable azureRegion {
   type = string
 }
 
-variable "vmAdminUsername" {
+variable vmAdminUsername {
   type = string
 }
 
-variable "vmAdminPassword" {
+variable vmAdminPassword {
   type = string
 }
 
-resource "azurerm_resource_group" "rg" {
+resource azurerm_resource_group rg {
   name     = var.appName
   location = var.azureRegion
 }
 
-resource "azurerm_virtual_network" "vnet" {
+resource azurerm_virtual_network vnet {
   name                = "${var.appName}-vNet"
   address_space       = ["10.0.0.0/16"]
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
 }
 
-resource "azurerm_subnet" "subnet" {
+resource azurerm_subnet subnet {
   name                 = "internal"
   resource_group_name  = azurerm_resource_group.rg.name
   virtual_network_name = azurerm_virtual_network.vnet.name
   address_prefixes     = ["10.0.2.0/24"]
 }
 
-resource "azurerm_availability_set" "availset" {
+resource azurerm_availability_set availset {
   name                = "aset"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
@@ -48,7 +55,7 @@ resource "azurerm_availability_set" "availset" {
   }
 }
 
-resource "azurerm_network_interface" "vnic" {
+resource azurerm_network_interface vnic {
   name                = "vnic${count.index}"
   count               = 5
   location            = azurerm_resource_group.rg.location
@@ -61,20 +68,20 @@ resource "azurerm_network_interface" "vnic" {
   }
 }
 
-resource "azurerm_network_interface_security_group_association" "nsg-assoc" {
+resource azurerm_network_interface_security_group_association nsg-assoc {
   count                     = 5
   network_interface_id      = element(azurerm_network_interface.vnic.*.id, count.index)
   network_security_group_id = azurerm_network_security_group.nsg.id
 }
 
-resource "azurerm_network_interface_backend_address_pool_association" "vnicToBePool" {
+resource azurerm_network_interface_backend_address_pool_association vnicToBePool {
   count                   = 5
   network_interface_id    = element(azurerm_network_interface.vnic.*.id, count.index)
   ip_configuration_name   = "internal"
   backend_address_pool_id = azurerm_lb_backend_address_pool.lb-backendpool.id
 }
 
-resource "azurerm_windows_virtual_machine" "vm" {
+resource azurerm_windows_virtual_machine vm {
   name                  = "vm-${count.index}"
   count                 = 5
   resource_group_name   = azurerm_resource_group.rg.name
@@ -98,7 +105,7 @@ resource "azurerm_windows_virtual_machine" "vm" {
   }
 }
 
-resource "azurerm_network_security_group" "nsg" {
+resource azurerm_network_security_group nsg {
   name                = "rdp-access"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
@@ -116,14 +123,14 @@ resource "azurerm_network_security_group" "nsg" {
   }
 }
 
-resource "azurerm_public_ip" "pubIp" {
+resource azurerm_public_ip pubIp {
   name                = "${var.appName}-pubIp"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
   allocation_method   = "Static"
 }
 
-resource "azurerm_lb" "lb" {
+resource azurerm_lb lb {
   name                = "${var.appName}-lb"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
@@ -134,31 +141,28 @@ resource "azurerm_lb" "lb" {
   }
 }
 
-resource "azurerm_lb_backend_address_pool" "lb-backendpool" {
-  resource_group_name = azurerm_resource_group.rg.name
+resource azurerm_lb_backend_address_pool lb-backendpool {
   loadbalancer_id     = azurerm_lb.lb.id
   name                = "BackEndAddressPool"
 }
 
-resource "azurerm_lb_probe" "lb-probe" {
-  resource_group_name = azurerm_resource_group.rg.name
+resource azurerm_lb_probe lb-probe {
   loadbalancer_id     = azurerm_lb.lb.id
   name                = "RDP-available"
   port                = 3389
 }
 
-resource "azurerm_lb_rule" "lb-rule" {
-  resource_group_name            = azurerm_resource_group.rg.name
+resource azurerm_lb_rule lb-rule {
   loadbalancer_id                = azurerm_lb.lb.id
   name                           = "LBRule"
   protocol                       = "Tcp"
   frontend_port                  = 3389
   backend_port                   = 3389
-  backend_address_pool_id        = azurerm_lb_backend_address_pool.lb-backendpool.id
+  backend_address_pool_ids        = [azurerm_lb_backend_address_pool.lb-backendpool.id]
   frontend_ip_configuration_name = "${var.appName}-feip"
 }
 
-output "pubip" {
+output pubip {
   value       = azurerm_public_ip.pubIp.ip_address
   description = "Public IP of the load balancer"
 }
