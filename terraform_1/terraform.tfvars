@@ -1,3 +1,3 @@
 subscriptionID = ""
-resourceGroupName = "NoBSDevOps"
+resourceGroupName = "MyGroup"
 location = "eastus"
