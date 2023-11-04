@@ -57,7 +57,7 @@ resource azurerm_availability_set availset {
 
 resource azurerm_network_interface vnic {
   name                = "vnic${count.index}"
-  count               = 5
+  count               = 2
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
 
@@ -69,13 +69,13 @@ resource azurerm_network_interface vnic {
 }
 
 resource azurerm_network_interface_security_group_association nsg-assoc {
-  count                     = 5
+  count                     = 2
   network_interface_id      = element(azurerm_network_interface.vnic.*.id, count.index)
   network_security_group_id = azurerm_network_security_group.nsg.id
 }
 
 resource azurerm_network_interface_backend_address_pool_association vnicToBePool {
-  count                   = 5
+  count                   = 2
   network_interface_id    = element(azurerm_network_interface.vnic.*.id, count.index)
   ip_configuration_name   = "internal"
   backend_address_pool_id = azurerm_lb_backend_address_pool.lb-backendpool.id
@@ -83,7 +83,7 @@ resource azurerm_network_interface_backend_address_pool_association vnicToBePool
 
 resource azurerm_windows_virtual_machine vm {
   name                  = "vm-${count.index}"
-  count                 = 5
+  count                 = 2
   resource_group_name   = azurerm_resource_group.rg.name
   location              = azurerm_resource_group.rg.location
   size                  = "Standard_F2"
