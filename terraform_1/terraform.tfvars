@@ -1,0 +1,2 @@
+resourceGroupName = "MyGroup"
+location = "eastus"
