@@ -1,2 +1,2 @@
-appName     = "NoBSAzure-availset"
+appName     = "MyGroup-availset"
 azureRegion = "eastus"
